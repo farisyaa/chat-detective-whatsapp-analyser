@@ -195,73 +195,287 @@ def run_backend(text):
         raise ValueError(payload.get("error", "Investigation failed."))
     return payload["result"]
 
-# Style the Streamlit page itself, outside the verdict-card iframe.
-st.markdown(
-    FONTS + """
-    <style>
-    .stApp {
-        background: #f3ecdc;
-        color: #1b1713;
-        font-family: 'Bricolage Grotesque', sans-serif;
-    }
-    [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stSidebar"] {
-        background: #e8dfcc;
-        border-right: 2px solid #1b1713;
-    }
-    .stMainBlockContainer { max-width: 780px; padding-top: 2rem; }
-    [data-testid="stHeadingWithActionElements"] h1 {
-        font-family: 'Archivo Black', sans-serif;
-        color: #1b1713;
-        text-transform: uppercase;
-    }
-    [data-testid="stCaptionContainer"],
-    [data-testid="stWidgetLabel"],
-    [data-testid="stMetricLabel"],
-    [data-testid="stMetricValue"],
-    [data-testid="stSidebar"] h2 { color: #1b1713; }
-    [data-testid="stAlert"] {
-        background: #faf5ea;
-        border: 1px solid #7b7267;
-        border-radius: 4px;
-    }
-    [data-testid="stAlert"] p { color: #1b1713; }
-    [data-testid="stFileUploaderDropzone"] {
-        background: #faf5ea;
-        color: #1b1713;
-        border: 2px dashed #7b7267;
-        border-radius: 4px;
-    }
-    .stButton > button, .stDownloadButton > button {
-        background: #efd98a;
-        color: #1b1713;
-        border: 2px solid #1b1713;
-        border-radius: 4px;
-        box-shadow: 3px 3px 0 #1b1713;
-        font-family: 'Courier Prime', monospace;
-        font-weight: 700;
-    }
-    .stButton > button[kind="primary"] {
-        background: #cf2a26;
-        color: #fffdf6;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# ============================================================
+# PAGE STYLING
+# ============================================================
+PAGE_CSS = FONTS + """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@1&family=Bricolage+Grotesque:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap');
 
-st.title("Chat Detective")
-st.caption("Your group chat has receipts. Four agents will read them.")
-st.info("For entertainment, not psychological assessment. Supported PII patterns are redacted, but names and sensitive context may remain. Scrubbed snippets and stats are sent to Gemini.")
-with st.sidebar:
-    st.header("Case controls")
-    if st.button("Clear result"):
-        st.session_state.pop("result", None)
-        st.rerun()
-    st.caption("Export WhatsApp chat without media. TXT or ZIP, up to 5 MB. Demo limit: 20,000 messages / 20 people.")
-upload = st.file_uploader("Upload WhatsApp export", type=["txt", "zip"])
-consent = st.checkbox("I have permission to process this chat and understand that scrubbed snippets reach Gemini.")
-if st.button("Investigate", disabled=not (upload and consent), type="primary"):
+/* Hide Streamlit chrome */
+#MainMenu, footer, header {visibility: hidden;}
+[data-testid="stHeader"] {background: transparent !important;}
+.block-container {padding-top: 2rem !important; max-width: 720px !important;}
+
+/* Page background */
+.stApp {
+    background: #faf6f1 !important;
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+
+/* Custom hero headline */
+.hero-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 48px;
+    font-weight: 600;
+    color: #1b1713;
+    line-height: 1.1;
+    margin: 0 0 8px 0;
+}
+.hero-title .pill {
+    display: inline-block;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 46px;
+    background: #f5c6d0;
+    border-radius: 999px;
+    padding: 2px 20px 6px;
+    margin-left: 8px;
+    transform: rotate(-2deg);
+    white-space: nowrap;
+}
+.hero-tagline {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 18px;
+    color: #5a534a;
+    margin: 0 0 28px 0;
+    line-height: 1.5;
+}
+
+/* Upload card */
+.upload-card {
+    background: #fff;
+    border: 1px solid #e0dbd4;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.upload-header {
+    background: #e8a857;
+    color: #1b1713;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.upload-header-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+}
+.upload-header-step {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+}
+.upload-body {
+    padding: 20px;
+}
+.upload-hint {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    color: #7b7267;
+    margin-bottom: 16px;
+}
+.upload-dropzone {
+    background: #f5f9f3;
+    border: 2px dashed #c5d4be;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: left;
+    position: relative;
+}
+.upload-dropzone-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: #1b1713;
+    margin-bottom: 16px;
+}
+
+/* Override Streamlit file uploader */
+[data-testid="stFileUploader"] {
+    background: transparent !important;
+}
+[data-testid="stFileUploaderDropzone"] {
+    background: transparent !important;
+    border: none !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
+}
+[data-testid="stFileUploader"] button {
+    background: #c8e6b8 !important;
+    color: #1b1713 !important;
+    border: 1px solid #9fc98f !important;
+    border-radius: 8px !important;
+    font-family: 'Bricolage Grotesque', sans-serif !important;
+    font-weight: 500 !important;
+    padding: 8px 20px !important;
+}
+[data-testid="stFileUploader"] small {
+    font-family: 'Courier Prime', monospace !important;
+    color: #7b7267 !important;
+}
+
+/* Checkbox styling */
+[data-testid="stCheckbox"] label span {
+    font-family: 'Bricolage Grotesque', sans-serif !important;
+    font-size: 14px !important;
+    color: #1b1713 !important;
+}
+
+/* Primary button - Investigate */
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background: #d4a59a !important;
+    color: #1b1713 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'Bricolage Grotesque', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    padding: 12px 24px !important;
+    box-shadow: none !important;
+}
+.stButton > button[kind="primary"]:hover {
+    background: #c9948a !important;
+}
+.stButton > button[kind="primary"]:disabled {
+    background: #d4a59a !important;
+    opacity: 0.5 !important;
+}
+
+/* Secondary button - Preview */
+.stButton > button[kind="secondary"],
+.stButton > button:not([kind="primary"]) {
+    background: #fff !important;
+    color: #1b1713 !important;
+    border: 1px solid #1b1713 !important;
+    border-radius: 8px !important;
+    font-family: 'Bricolage Grotesque', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    padding: 12px 24px !important;
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    background: #fff !important;
+    border: 1px solid #e0dbd4 !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+}
+[data-testid="stExpander"] summary {
+    font-family: 'Bricolage Grotesque', sans-serif !important;
+    font-size: 15px !important;
+    color: #1b1713 !important;
+    padding: 16px 20px !important;
+}
+[data-testid="stExpander"] svg {
+    color: #7b7267 !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: #f5f1eb !important;
+}
+[data-testid="stSidebar"] [data-testid="stMetricValue"] {
+    font-family: 'Archivo Black', sans-serif !important;
+    color: #1b1713 !important;
+}
+[data-testid="stSidebar"] [data-testid="stMetricLabel"] {
+    font-family: 'Courier Prime', monospace !important;
+    color: #7b7267 !important;
+    font-size: 12px !important;
+}
+
+/* Hide default labels */
+[data-testid="stWidgetLabel"] {
+    display: none !important;
+}
+
+/* Spinner */
+.stSpinner > div {
+    border-color: #e8a857 transparent transparent transparent !important;
+}
+</style>
+"""
+
+# ============================================================
+# UI LAYOUT
+# ============================================================
+st.markdown(PAGE_CSS, unsafe_allow_html=True)
+
+# Hero
+st.markdown("""
+<h1 class="hero-title">Your group chat.<br>Under <span class="pill">investigation.</span></h1>
+<p class="hero-tagline">Someone's always "otw". Someone only replies "k".<br>Let's see what the receipts say.</p>
+""", unsafe_allow_html=True)
+
+# Upload card
+st.markdown("""
+<div class="upload-card">
+  <div class="upload-header">
+    <span class="upload-header-title">Submit the evidence</span>
+    <span class="upload-header-step">01 / UPLOAD</span>
+  </div>
+  <div class="upload-body">
+    <p class="upload-hint">WhatsApp export · without media · TXT or ZIP · up to 5 MB</p>
+    <div class="upload-dropzone">
+      <p class="upload-dropzone-title">Drop your chat export here</p>
+""", unsafe_allow_html=True)
+
+upload = st.file_uploader("Upload", type=["txt", "zip"], label_visibility="collapsed")
+
+st.markdown("</div></div></div>", unsafe_allow_html=True)
+
+consent = st.checkbox("I have permission to analyze this chat. I understand that scrubbed snippets and stats are sent to Gemini.")
+
+col1, col2 = st.columns([1, 1])
+with col1:
+    investigate_clicked = st.button("Investigate this chat ↗", disabled=not (upload and consent), type="primary")
+with col2:
+    preview_clicked = st.button("Preview a sample case")
+
+with st.expander("Before you hand over the receipts"):
+    st.markdown("""
+    **For entertainment only.** This is not a psychological assessment.
+
+    **Privacy:** Supported PII patterns (phone numbers, emails, URLs) are redacted before analysis. Names and sensitive context may remain in the scrubbed text sent to Gemini.
+
+    **Demo limits:** 20,000 messages and 20 participants max.
+    """)
+
+with st.expander("How do I export my chat?"):
+    st.markdown("""
+    1. Open the WhatsApp chat
+    2. Tap the three dots (⋮) → **More** → **Export chat**
+    3. Choose **Without media**
+    4. Save the .txt or .zip file
+    5. Upload it here
+    """)
+
+# ============================================================
+# LOGIC
+# ============================================================
+if preview_clicked:
+    # Show a hardcoded sample verdict
+    sample_verdict = {
+        "group_name": "Sample Squad",
+        "group_verdict": "A textbook case of chronic lateness, selective hearing, and 'I'll do it tomorrow' energy.",
+        "group_subtitle": "847 messages · 1.2 min median reply · 14 months of chaos",
+        "people": [
+            {"name": "Alex", "emoji": "🦥", "label": "THE GHOST", "mbti": "INFP", "celebrity": "Timothée Chalamet", "roast": "Appears once a month to drop a single 'lol' then vanishes.", "receipt": "Last seen: 3 weeks ago. Messages sent: 12."},
+            {"name": "Sam", "emoji": "📱", "label": "THE SCHEDULER", "mbti": "ESTJ", "celebrity": "Monica Geller", "roast": "Will create a poll for literally anything, including what to have for lunch.", "receipt": "Polls created: 47. Polls ignored by group: 46."}
+        ]
+    }
+    st.session_state["result"] = {"verdict": sample_verdict, "summary": {"total": {"usd": 0, "calls": 0}}, "tools": [], "ledger": []}
+
+if investigate_clicked:
     st.session_state.pop("result", None)
     try:
         raw = read_upload(upload)
@@ -276,17 +490,22 @@ if st.button("Investigate", disabled=not (upload and consent), type="primary"):
         del raw, clean
     except subprocess.TimeoutExpired:
         st.error("The investigation exceeded five minutes. Try a smaller export.")
-    except (ValueError, zipfile.BadZipFile, RuntimeError):
-        st.error("Could not analyze the export. Check file format and size, API secrets, model availability and quota.")
+    except (ValueError, zipfile.BadZipFile, RuntimeError) as e:
+        st.error(f"Could not analyze the export: {e}")
+
 result = st.session_state.get("result")
 if result:
     v = result["verdict"]
     components.html(render_card_html(v), height=400 + 340 * len(v["people"]), scrolling=True)
     totals = result["summary"]["total"]
-    st.sidebar.metric("Estimated cost (USD)", f"${totals['usd']:.5f}")
-    st.sidebar.metric("Model calls", totals["calls"])
-    st.sidebar.caption("Historical pricing estimates, not a billing quote.")
+    if totals["calls"] > 0:
+        with st.sidebar:
+            st.metric("Estimated cost (USD)", f"${totals['usd']:.5f}")
+            st.metric("Model calls", totals["calls"])
+            st.caption("Historical pricing estimates, not a billing quote.")
     with st.expander("Detective log and token usage"):
-        st.dataframe(result["tools"], use_container_width=True)
-        st.dataframe(result["ledger"], use_container_width=True)
+        if result.get("tools"):
+            st.dataframe(result["tools"], use_container_width=True)
+        if result.get("ledger"):
+            st.dataframe(result["ledger"], use_container_width=True)
     st.download_button("Download verdict JSON", json.dumps(v, ensure_ascii=False, indent=2), "verdict.json", "application/json")
