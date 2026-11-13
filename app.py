@@ -195,6 +195,61 @@ def run_backend(text):
         raise ValueError(payload.get("error", "Investigation failed."))
     return payload["result"]
 
+# Style the Streamlit page itself, outside the verdict-card iframe.
+st.markdown(
+    FONTS + """
+    <style>
+    .stApp {
+        background: #f3ecdc;
+        color: #1b1713;
+        font-family: 'Bricolage Grotesque', sans-serif;
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stSidebar"] {
+        background: #e8dfcc;
+        border-right: 2px solid #1b1713;
+    }
+    .stMainBlockContainer { max-width: 780px; padding-top: 2rem; }
+    [data-testid="stHeadingWithActionElements"] h1 {
+        font-family: 'Archivo Black', sans-serif;
+        color: #1b1713;
+        text-transform: uppercase;
+    }
+    [data-testid="stCaptionContainer"],
+    [data-testid="stWidgetLabel"],
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricValue"],
+    [data-testid="stSidebar"] h2 { color: #1b1713; }
+    [data-testid="stAlert"] {
+        background: #faf5ea;
+        border: 1px solid #7b7267;
+        border-radius: 4px;
+    }
+    [data-testid="stAlert"] p { color: #1b1713; }
+    [data-testid="stFileUploaderDropzone"] {
+        background: #faf5ea;
+        color: #1b1713;
+        border: 2px dashed #7b7267;
+        border-radius: 4px;
+    }
+    .stButton > button, .stDownloadButton > button {
+        background: #efd98a;
+        color: #1b1713;
+        border: 2px solid #1b1713;
+        border-radius: 4px;
+        box-shadow: 3px 3px 0 #1b1713;
+        font-family: 'Courier Prime', monospace;
+        font-weight: 700;
+    }
+    .stButton > button[kind="primary"] {
+        background: #cf2a26;
+        color: #fffdf6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("Chat Detective")
 st.caption("Your group chat has receipts. Four agents will read them.")
 st.info("For entertainment, not psychological assessment. Supported PII patterns are redacted, but names and sensitive context may remain. Scrubbed snippets and stats are sent to Gemini.")
