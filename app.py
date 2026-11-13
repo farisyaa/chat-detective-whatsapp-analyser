@@ -12,24 +12,103 @@ from detective_backend import parse_chat, scrub_messages
 st.set_page_config(page_title="Chat Detective", page_icon="🕵️", layout="centered")
 import html as _html
 
-FONTS = ('<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@1'
-         '&family=Bricolage+Grotesque:wght@400;500;600&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">')
+# ============================================================
+# MINIMAL PAGE STYLING
+# ============================================================
+st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+.stApp { background: #faf6f0; }
+[data-testid="stHeader"] { background: transparent; }
+.block-container { max-width: 680px; padding-top: 3rem; }
 
+/* Clean up widget labels */
+[data-testid="stFileUploader"] > label { display: none; }
+
+/* Simple button styling */
+.stButton > button {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+}
+.stButton > button[kind="primary"] {
+    background: #e07a5f;
+    border: none;
+}
+.stButton > button:not([kind="primary"]) {
+    background: white;
+    border: 1.5px solid #222;
+}
+
+/* File uploader */
+[data-testid="stFileUploaderDropzone"] {
+    background: #f0ebe3;
+    border: 2px dashed #c9c2b5;
+    border-radius: 12px;
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    background: white;
+    border: 1px solid #e5e0d8;
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# HERO
+# ============================================================
+st.markdown("""
+<h1 style="font-family: 'DM Sans', sans-serif; font-size: 2.8rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.3rem; line-height: 1.15;">
+Your group chat.<br>Under <span style="background: #f8c8c8; padding: 0 12px; border-radius: 6px;">investigation</span>.
+</h1>
+<p style="font-family: 'DM Sans', sans-serif; font-size: 1.1rem; color: #666; margin-bottom: 2rem;">
+Someone's always "otw". Someone only replies "k". Let's find out who.
+</p>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# UPLOAD SECTION
+# ============================================================
+st.markdown("""
+<div style="background: #e8a857; color: #1a1a1a; padding: 12px 18px; border-radius: 10px 10px 0 0; font-family: 'DM Sans', sans-serif; font-weight: 600; display: flex; justify-content: space-between;">
+<span>Submit the evidence</span>
+<span style="font-weight: 400; opacity: 0.8;">01 / UPLOAD</span>
+</div>
+<div style="background: white; padding: 20px; border: 1px solid #e5e0d8; border-top: none; border-radius: 0 0 10px 10px; margin-bottom: 1.5rem;">
+<p style="font-family: 'DM Sans', sans-serif; color: #888; font-size: 0.9rem; margin-bottom: 1rem;">
+WhatsApp export · without media · TXT or ZIP · up to 5 MB
+</p>
+</div>
+""", unsafe_allow_html=True)
+
+upload = st.file_uploader("Upload", type=["txt", "zip"], label_visibility="collapsed")
+
+consent = st.checkbox("I have permission to analyze this chat and understand that scrubbed snippets go to Gemini.")
+
+col1, col2 = st.columns(2)
+with col1:
+    investigate = st.button("Investigate ↗", disabled=not (upload and consent), type="primary", use_container_width=True)
+with col2:
+    preview = st.button("Preview sample", use_container_width=True)
+
+with st.expander("ℹ️ Before you upload"):
+    st.write("**For fun only.** Not a real personality test. Phone numbers and emails get redacted, but names stay visible.")
+
+with st.expander("📱 How to export"):
+    st.write("WhatsApp → Chat → ⋮ → More → Export → Without media → Upload the .txt or .zip")
+
+# ============================================================
+# VERDICT CARD RENDERING
+# ============================================================
 def _svg(s):
     return "url(\"data:image/svg+xml;utf8," + s.replace("#", "%23").replace("\n", "") + "\")"
 
-GRAIN = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'>"
-             "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/>"
-             "<feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.14 0 0 0 0 0.08 0 0 0 0.16 0'/></filter>"
-             "<rect width='100%' height='100%' filter='url(#n)'/></svg>")
-INK = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>"
-           "<filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='2' seed='7'/>"
-           "<feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 0.1'/></filter>"
-           "<rect width='100%' height='100%' fill='white' filter='url(#m)'/></svg>")
-RING = _svg("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>"
-            "<circle cx='100' cy='100' r='78' fill='none' stroke='#7a4a1e' stroke-width='9' opacity='.16'/>"
-            "<circle cx='100' cy='100' r='78' fill='none' stroke='#5a3312' stroke-width='2' opacity='.22' stroke-dasharray='40 11 6 23 90 14'/>"
-            "<circle cx='100' cy='100' r='70' fill='none' stroke='#7a4a1e' stroke-width='1.5' opacity='.12'/></svg>")
+GRAIN = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.14 0 0 0 0 0.08 0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>")
+INK = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 0.1'/></filter><rect width='100%' height='100%' fill='white' filter='url(#m)'/></svg>")
+RING = _svg("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><circle cx='100' cy='100' r='78' fill='none' stroke='#7a4a1e' stroke-width='9' opacity='.16'/><circle cx='100' cy='100' r='78' fill='none' stroke='#5a3312' stroke-width='2' opacity='.22' stroke-dasharray='40 11 6 23 90 14'/><circle cx='100' cy='100' r='70' fill='none' stroke='#7a4a1e' stroke-width='1.5' opacity='.12'/></svg>")
 SCRIBBLES = [
     "<path d='M1 5 Q 14 1 27 5 T 53 4 T 79 6 T 99 3' fill='none' stroke='#d92b2b' stroke-width='2.6' stroke-linecap='round'/>",
     "<path d='M2 4 C 20 8, 40 0, 60 5 S 90 2, 99 6 M4 7 C 30 4, 60 9, 96 5' fill='none' stroke='#d92b2b' stroke-width='1.9' stroke-linecap='round'/>",
@@ -37,6 +116,8 @@ SCRIBBLES = [
 ]
 def _scribble(i):
     return _svg("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'>" + SCRIBBLES[i % 3] + "</svg>")
+
+FONTS = '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@1&family=Bricolage+Grotesque:wght@400;500;600&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">'
 
 CSS = f"""
 <style>
@@ -52,28 +133,17 @@ CSS = f"""
 .cd .file s{{color:var(--ink);text-decoration-color:var(--red);text-decoration-thickness:2px}}
 .cd .file .hand{{font-family:'Caveat',cursive;font-size:17px;color:var(--red);text-transform:none;letter-spacing:0;margin-left:4px;display:inline-block;transform:rotate(-4deg)}}
 .cd h1{{font-family:'Archivo Black',Impact,sans-serif;font-size:36px;line-height:.98;letter-spacing:-.015em;margin:16px 0 12px;text-transform:uppercase;text-shadow:2px 2px 0 var(--paper),3px 3px 0 var(--ink)}}
-.cd .pill{{display:inline-block;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400;font-size:31px;text-transform:none;letter-spacing:0;text-shadow:none;
-     background:var(--paper2);border:2px solid var(--ink);border-radius:999px;padding:0 15px 3px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-2.5deg) translateY(-2px);margin-left:6px}}
+.cd .pill{{display:inline-block;font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400;font-size:31px;text-transform:none;letter-spacing:0;text-shadow:none;background:var(--paper2);border:2px solid var(--ink);border-radius:999px;padding:0 15px 3px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-2.5deg) translateY(-2px);margin-left:6px}}
 .cd .verdict{{font-size:17.5px;font-weight:500;margin:0 0 10px;max-width:92%}}
-.cd .verdict em{{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.12em}}
 .cd .stats{{font-family:'Courier Prime',monospace;font-size:12.5px;color:var(--ink);margin:0 0 22px;padding:6px 0;border-top:1px solid rgba(27,23,19,.35);border-bottom:1px solid rgba(27,23,19,.35)}}
 .cd .stats span{{white-space:nowrap}}
 .cd .stats span + span:before{{content:'  //  ';color:var(--mute)}}
 .cd .person{{background:var(--paper2);background-image:{GRAIN};border:2px solid var(--ink);border-radius:3px 10px 3px 8px;box-shadow:4px 5px 0 var(--ink);padding:18px 16px 14px;margin:0 0 24px;position:relative}}
 .cd .person:nth-child(odd){{transform:rotate(-.45deg)}}
 .cd .person:nth-child(even){{transform:rotate(.35deg);margin-left:6px;margin-right:-6px}}
-.cd .person:nth-child(3n){{transform:rotate(-.2deg);margin-left:-4px;margin-right:4px}}
-.cd .tape{{position:absolute;left:50%;top:-12px;width:92px;height:22px;margin-left:-46px;background:var(--tape);background-image:{GRAIN};opacity:.85;
-     transform:rotate(-3deg);box-shadow:0 1px 2px rgba(0,0,0,.18);
-     clip-path:polygon(0 0,97% 2%,100% 20%,98% 100%,2% 96%,0 80%)}}
-.cd .person:nth-child(even) .tape{{transform:rotate(2.5deg);left:74%}}
-.cd .person:nth-child(3n) .tape{{transform:rotate(-1.5deg);left:58%}}
+.cd .tape{{position:absolute;left:50%;top:-12px;width:92px;height:22px;margin-left:-46px;background:var(--tape);background-image:{GRAIN};opacity:.85;transform:rotate(-3deg);box-shadow:0 1px 2px rgba(0,0,0,.18);clip-path:polygon(0 0,97% 2%,100% 20%,98% 100%,2% 96%,0 80%)}}
 .cd .emo{{position:absolute;left:-13px;top:-13px;width:40px;height:40px;border:2px solid var(--ink);border-radius:9px 11px 8px 12px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:2px 2px 0 var(--ink);transform:rotate(-3deg)}}
-.cd .stamp{{position:absolute;right:12px;top:-16px;color:var(--red);border:3px double var(--red);border-radius:4px;padding:5px 10px 4px;line-height:1;
-     font-family:'Archivo Black',Impact,sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;transform:rotate(6deg);
-     background:var(--paper2);-webkit-mask-image:{INK};mask-image:{INK};-webkit-mask-size:70px 70px;mask-size:70px 70px;opacity:.95}}
-.cd .person:nth-child(even) .stamp{{transform:rotate(-4deg);right:auto;left:150px;top:-14px}}
-.cd .person:nth-child(3n) .stamp{{transform:rotate(3deg);right:26px;top:-18px}}
+.cd .stamp{{position:absolute;right:12px;top:-16px;color:var(--red);border:3px double var(--red);border-radius:4px;padding:5px 10px 4px;line-height:1;font-family:'Archivo Black',Impact,sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;transform:rotate(6deg);background:var(--paper2);-webkit-mask-image:{INK};mask-image:{INK};-webkit-mask-size:70px 70px;mask-size:70px 70px;opacity:.95}}
 .cd .name{{font-family:'Archivo Black',Impact,sans-serif;font-size:23px;text-transform:uppercase;display:inline-block;position:relative;margin:2px 0 6px 28px;letter-spacing:.01em}}
 .cd .name:after{{content:'';position:absolute;left:-3px;right:-6px;bottom:-4px;height:9px;background-repeat:no-repeat;background-size:100% 100%}}
 .cd .s0 .name:after{{background-image:{_scribble(0)}}}
@@ -81,27 +151,14 @@ CSS = f"""
 .cd .s2 .name:after{{background-image:{_scribble(2)}}}
 .cd .chips{{margin:4px 0 10px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}}
 .cd .chips .note{{margin-left:auto;font-family:'Caveat',cursive;font-weight:700;font-size:21px;color:var(--red);transform:rotate(-6deg);line-height:1;white-space:nowrap;padding-right:4px}}
-.cd .person:nth-child(even) .chips .note{{transform:rotate(4deg)}}
 .cd .chip{{font-family:'Courier Prime',monospace;font-size:12px;font-weight:700;border:1.5px solid var(--ink);border-radius:999px;padding:3px 10px 2px;background:var(--paper);box-shadow:2px 2px 0 var(--ink)}}
 .cd .chip.mbti{{background:var(--acc);transform:rotate(-1.5deg)}}
 .cd .chip.twin{{border-radius:3px;transform:rotate(.6deg);box-shadow:1.5px 1.5px 0 var(--ink)}}
 .cd .roast{{font-size:15.5px;margin:0 0 12px}}
-.cd .receipt{{font-family:'Courier Prime',monospace;font-size:12px;color:var(--ink);background:#fffdf6;padding:7px 10px 10px;position:relative;margin:0 0 0 -2px;max-width:fit-content;
-     box-shadow:1px 2px 3px rgba(0,0,0,.12);
-     clip-path:polygon(0 0,100% 0,100% calc(100% - 4px),97% 100%,94% calc(100% - 4px),91% 100%,88% calc(100% - 4px),85% 100%,82% calc(100% - 4px),79% 100%,76% calc(100% - 4px),73% 100%,70% calc(100% - 4px),67% 100%,64% calc(100% - 4px),61% 100%,58% calc(100% - 4px),55% 100%,52% calc(100% - 4px),49% 100%,46% calc(100% - 4px),43% 100%,40% calc(100% - 4px),37% 100%,34% calc(100% - 4px),31% 100%,28% calc(100% - 4px),25% 100%,22% calc(100% - 4px),19% 100%,16% calc(100% - 4px),13% 100%,10% calc(100% - 4px),7% 100%,4% calc(100% - 4px),1% 100%,0 calc(100% - 4px))}}
+.cd .receipt{{font-family:'Courier Prime',monospace;font-size:12px;color:var(--ink);background:#fffdf6;padding:7px 10px 10px;position:relative;margin:0 0 0 -2px;max-width:fit-content;box-shadow:1px 2px 3px rgba(0,0,0,.12);clip-path:polygon(0 0,100% 0,100% calc(100% - 4px),97% 100%,94% calc(100% - 4px),91% 100%,88% calc(100% - 4px),85% 100%,82% calc(100% - 4px),79% 100%,76% calc(100% - 4px),73% 100%,70% calc(100% - 4px),67% 100%,64% calc(100% - 4px),61% 100%,58% calc(100% - 4px),55% 100%,52% calc(100% - 4px),49% 100%,46% calc(100% - 4px),43% 100%,40% calc(100% - 4px),37% 100%,34% calc(100% - 4px),31% 100%,28% calc(100% - 4px),25% 100%,22% calc(100% - 4px),19% 100%,16% calc(100% - 4px),13% 100%,10% calc(100% - 4px),7% 100%,4% calc(100% - 4px),1% 100%,0 calc(100% - 4px))}}
 .cd .receipt b{{color:var(--red);font-weight:700;letter-spacing:.08em;display:block;font-size:10.5px;margin-bottom:2px}}
 .cd .foot{{font-family:'Caveat',cursive;font-size:19px;color:var(--ink);display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px;position:relative}}
 .cd .foot .sig{{transform:rotate(-2deg);display:inline-block;max-width:100%;line-height:1.05;font-size:18px}}
-
-@media(max-width:480px){{
-.cd{{padding:28px 20px 20px}}
-.cd .file{{flex-wrap:wrap;gap:4px}}
-.cd h1{{font-size:30px}}
-.cd .stats span{{white-space:normal}}
-.cd .stamp,.cd .person:nth-child(even) .stamp,.cd .person:nth-child(3n) .stamp{{left:auto;right:6px;max-width:calc(100% - 40px);font-size:10px}}
-.cd .chip{{max-width:100%;overflow-wrap:anywhere}}
-.cd .chips .note{{white-space:normal}}
-}}
 </style>
 """
 
@@ -112,7 +169,6 @@ def _e(s):
     return _html.escape(str(s or ""))
 
 def render_card_html(v, case_no="0001"):
-    """Verdict JSON -> self-contained HTML (works in Colab display(HTML) and Streamlit st.markdown)."""
     people = ""
     for i, p in enumerate(v.get("people", [])):
         acc = ACCENTS[i % len(ACCENTS)]
@@ -145,7 +201,9 @@ def render_card_html(v, case_no="0001"):
       <div class="foot"><span class="sig">read in full by 4 agents, so you don't have to</span></div>
     </div>"""
 
-
+# ============================================================
+# BACKEND
+# ============================================================
 MAX_BYTES = 5 * 1024 * 1024
 
 def read_upload(upload):
@@ -191,167 +249,9 @@ def run_backend(text):
     return payload["result"]
 
 # ============================================================
-# PAGE STYLING - inject via st.html (renders raw HTML without escaping)
-# ============================================================
-st.html(FONTS + """
-<style>
-/* Hide Streamlit chrome */
-#MainMenu, footer, header {visibility: hidden;}
-[data-testid="stHeader"] {background: transparent !important;}
-.block-container {padding-top: 2rem !important; max-width: 720px !important;}
-
-/* Page background */
-.stApp {
-    background: #faf6f1 !important;
-    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-}
-
-/* Override Streamlit file uploader */
-[data-testid="stFileUploader"] { background: transparent !important; }
-[data-testid="stFileUploaderDropzone"] {
-    background: #f5f9f3 !important;
-    border: 2px dashed #c5d4be !important;
-    border-radius: 12px !important;
-}
-[data-testid="stFileUploader"] button {
-    background: #c8e6b8 !important;
-    color: #1b1713 !important;
-    border: 1px solid #9fc98f !important;
-    border-radius: 8px !important;
-    font-family: 'Bricolage Grotesque', sans-serif !important;
-    font-weight: 500 !important;
-}
-[data-testid="stFileUploader"] small {
-    font-family: 'Courier Prime', monospace !important;
-    color: #7b7267 !important;
-}
-
-/* Checkbox */
-[data-testid="stCheckbox"] label span {
-    font-family: 'Bricolage Grotesque', sans-serif !important;
-    font-size: 14px !important;
-    color: #1b1713 !important;
-}
-
-/* Primary button */
-.stButton > button[kind="primary"],
-div[data-testid="stButton"] > button:first-child {
-    background: #d4a59a !important;
-    color: #1b1713 !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-family: 'Bricolage Grotesque', sans-serif !important;
-    font-weight: 500 !important;
-    padding: 12px 24px !important;
-}
-.stButton > button[kind="primary"]:disabled {
-    opacity: 0.5 !important;
-}
-
-/* Secondary button */
-.stButton > button:not([kind="primary"]) {
-    background: #fff !important;
-    color: #1b1713 !important;
-    border: 1px solid #1b1713 !important;
-    border-radius: 8px !important;
-    font-family: 'Bricolage Grotesque', sans-serif !important;
-    font-weight: 500 !important;
-    padding: 12px 24px !important;
-}
-
-/* Expanders */
-[data-testid="stExpander"] {
-    background: #fff !important;
-    border: 1px solid #e0dbd4 !important;
-    border-radius: 12px !important;
-    margin-bottom: 12px !important;
-}
-[data-testid="stExpander"] summary {
-    font-family: 'Bricolage Grotesque', sans-serif !important;
-    color: #1b1713 !important;
-}
-
-/* Sidebar */
-[data-testid="stSidebar"] { background: #f5f1eb !important; }
-[data-testid="stSidebar"] [data-testid="stMetricValue"] {
-    font-family: 'Archivo Black', sans-serif !important;
-    color: #1b1713 !important;
-}
-[data-testid="stSidebar"] [data-testid="stMetricLabel"] {
-    font-family: 'Courier Prime', monospace !important;
-    color: #7b7267 !important;
-}
-
-/* Spinner */
-.stSpinner > div { border-color: #e8a857 transparent transparent transparent !important; }
-</style>
-""")
-
-# ============================================================
-# HERO (self-contained HTML block)
-# ============================================================
-st.html("""
-<div style="margin-bottom: 28px;">
-  <h1 style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 48px; font-weight: 600; color: #1b1713; line-height: 1.1; margin: 0 0 8px 0;">
-    Your group chat.<br>
-    Under <span style="display: inline-block; font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; font-size: 46px; background: #f5c6d0; border-radius: 999px; padding: 2px 20px 6px; transform: rotate(-2deg);">investigation.</span>
-  </h1>
-  <p style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; color: #5a534a; margin: 0; line-height: 1.5;">
-    Someone's always "otw". Someone only replies "k".<br>
-    Let's see what the receipts say.
-  </p>
-</div>
-""")
-
-# ============================================================
-# UPLOAD CARD HEADER (self-contained)
-# ============================================================
-st.html("""
-<div style="background: #e8a857; color: #1b1713; padding: 14px 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: -16px;">
-  <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 17px;">Submit the evidence</span>
-  <span style="font-family: 'Courier Prime', monospace; font-size: 13px; letter-spacing: 0.05em; opacity: 0.85;">01 / UPLOAD</span>
-</div>
-""")
-
-# File uploader hint
-st.caption("WhatsApp export · without media · TXT or ZIP · up to 5 MB")
-
-# Native Streamlit file uploader (styled via CSS above)
-upload = st.file_uploader("Drop your chat export here", type=["txt", "zip"])
-
-# Consent checkbox
-consent = st.checkbox("I have permission to analyze this chat. I understand that scrubbed snippets and stats are sent to Gemini.")
-
-# Buttons
-col1, col2 = st.columns([1, 1])
-with col1:
-    investigate_clicked = st.button("Investigate this chat ↗", disabled=not (upload and consent), type="primary")
-with col2:
-    preview_clicked = st.button("Preview a sample case")
-
-# FAQ expanders
-with st.expander("Before you hand over the receipts"):
-    st.markdown("""
-**For entertainment only.** This is not a psychological assessment.
-
-**Privacy:** Supported PII patterns (phone numbers, emails, URLs) are redacted before analysis. Names and sensitive context may remain in the scrubbed text sent to Gemini.
-
-**Demo limits:** 20,000 messages and 20 participants max.
-""")
-
-with st.expander("How do I export my chat?"):
-    st.markdown("""
-1. Open the WhatsApp chat
-2. Tap the three dots (⋮) → **More** → **Export chat**
-3. Choose **Without media**
-4. Save the .txt or .zip file
-5. Upload it here
-""")
-
-# ============================================================
 # LOGIC
 # ============================================================
-if preview_clicked:
+if preview:
     sample_verdict = {
         "group_name": "Sample Squad",
         "group_verdict": "A textbook case of chronic lateness, selective hearing, and 'I'll do it tomorrow' energy.",
@@ -363,23 +263,22 @@ if preview_clicked:
     }
     st.session_state["result"] = {"verdict": sample_verdict, "summary": {"total": {"usd": 0, "calls": 0}}, "tools": [], "ledger": []}
 
-if investigate_clicked:
+if investigate:
     st.session_state.pop("result", None)
     try:
         raw = read_upload(upload)
         clean, report = scrub_messages(parse_chat(raw))
         if not clean:
-            raise ValueError("No supported messages found. Check your WhatsApp export format.")
+            raise ValueError("No supported messages found.")
         if len(clean) > 20000 or len({m["sender"] for m in clean}) > 20:
             raise ValueError("Demo limit: 20,000 messages and 20 participants.")
-        st.caption(f"Parsed {len(clean):,} messages. Redacted {sum(report.values())} supported PII matches.")
-        with st.spinner("Investigator → parallel profilers → Roastmaster..."):
+        st.info(f"Parsed {len(clean):,} messages. Redacted {sum(report.values())} PII matches.")
+        with st.spinner("Reading receipts..."):
             st.session_state["result"] = run_backend(raw)
-        del raw, clean
     except subprocess.TimeoutExpired:
-        st.error("The investigation exceeded five minutes. Try a smaller export.")
+        st.error("Timed out. Try a smaller export.")
     except (ValueError, zipfile.BadZipFile, RuntimeError) as e:
-        st.error(f"Could not analyze the export: {e}")
+        st.error(str(e))
 
 result = st.session_state.get("result")
 if result:
@@ -388,12 +287,11 @@ if result:
     totals = result["summary"]["total"]
     if totals["calls"] > 0:
         with st.sidebar:
-            st.metric("Estimated cost (USD)", f"${totals['usd']:.5f}")
-            st.metric("Model calls", totals["calls"])
-            st.caption("Historical pricing estimates, not a billing quote.")
-    with st.expander("Detective log and token usage"):
+            st.metric("Cost", f"${totals['usd']:.4f}")
+            st.metric("Calls", totals["calls"])
+    with st.expander("Debug log"):
         if result.get("tools"):
             st.dataframe(result["tools"], use_container_width=True)
         if result.get("ledger"):
             st.dataframe(result["ledger"], use_container_width=True)
-    st.download_button("Download verdict JSON", json.dumps(v, ensure_ascii=False, indent=2), "verdict.json", "application/json")
+    st.download_button("Download JSON", json.dumps(v, ensure_ascii=False, indent=2), "verdict.json", "application/json")
