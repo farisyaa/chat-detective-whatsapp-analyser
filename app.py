@@ -8,100 +8,37 @@ import zipfile
 import streamlit as st
 import streamlit.components.v1 as components
 from detective_backend import parse_chat, scrub_messages
-
-st.set_page_config(page_title="Chat Detective", page_icon="🕵️", layout="centered")
 import html as _html
 
-# ============================================================
-# MINIMAL PAGE STYLING
-# ============================================================
-st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-.stApp { background: #faf6f0; }
-[data-testid="stHeader"] { background: transparent; }
-.block-container { max-width: 680px; padding-top: 3rem; }
-
-/* Clean up widget labels */
-[data-testid="stFileUploader"] > label { display: none; }
-
-/* Simple button styling */
-.stButton > button {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 0.6rem 1.5rem;
-}
-.stButton > button[kind="primary"] {
-    background: #e07a5f;
-    border: none;
-}
-.stButton > button:not([kind="primary"]) {
-    background: white;
-    border: 1.5px solid #222;
-}
-
-/* File uploader */
-[data-testid="stFileUploaderDropzone"] {
-    background: #f0ebe3;
-    border: 2px dashed #c9c2b5;
-    border-radius: 12px;
-}
-
-/* Expanders */
-[data-testid="stExpander"] {
-    background: white;
-    border: 1px solid #e5e0d8;
-    border-radius: 10px;
-}
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Chat Detective", page_icon="🕵️", layout="centered")
 
 # ============================================================
-# HERO
+# UI - using native Streamlit (themed via .streamlit/config.toml)
 # ============================================================
-st.markdown("""
-<h1 style="font-family: 'DM Sans', sans-serif; font-size: 2.8rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.3rem; line-height: 1.15;">
-Your group chat.<br>Under <span style="background: #f8c8c8; padding: 0 12px; border-radius: 6px;">investigation</span>.
-</h1>
-<p style="font-family: 'DM Sans', sans-serif; font-size: 1.1rem; color: #666; margin-bottom: 2rem;">
-Someone's always "otw". Someone only replies "k". Let's find out who.
-</p>
-""", unsafe_allow_html=True)
+st.title("🕵️ Chat Detective")
+st.write("Your group chat has receipts. Four AI agents will read them.")
 
-# ============================================================
-# UPLOAD SECTION
-# ============================================================
-st.markdown("""
-<div style="background: #e8a857; color: #1a1a1a; padding: 12px 18px; border-radius: 10px 10px 0 0; font-family: 'DM Sans', sans-serif; font-weight: 600; display: flex; justify-content: space-between;">
-<span>Submit the evidence</span>
-<span style="font-weight: 400; opacity: 0.8;">01 / UPLOAD</span>
-</div>
-<div style="background: white; padding: 20px; border: 1px solid #e5e0d8; border-top: none; border-radius: 0 0 10px 10px; margin-bottom: 1.5rem;">
-<p style="font-family: 'DM Sans', sans-serif; color: #888; font-size: 0.9rem; margin-bottom: 1rem;">
-WhatsApp export · without media · TXT or ZIP · up to 5 MB
-</p>
-</div>
-""", unsafe_allow_html=True)
+st.info("**For fun only.** Phone numbers and emails get redacted. Names stay visible. Scrubbed text goes to Gemini.")
 
-upload = st.file_uploader("Upload", type=["txt", "zip"], label_visibility="collapsed")
-
-consent = st.checkbox("I have permission to analyze this chat and understand that scrubbed snippets go to Gemini.")
+upload = st.file_uploader("Upload WhatsApp export (.txt or .zip)", type=["txt", "zip"])
+consent = st.checkbox("I have permission to analyze this chat")
 
 col1, col2 = st.columns(2)
 with col1:
-    investigate = st.button("Investigate ↗", disabled=not (upload and consent), type="primary", use_container_width=True)
+    investigate = st.button("🔍 Investigate", disabled=not (upload and consent), type="primary", use_container_width=True)
 with col2:
-    preview = st.button("Preview sample", use_container_width=True)
+    preview = st.button("👀 Preview sample", use_container_width=True)
 
-with st.expander("ℹ️ Before you upload"):
-    st.write("**For fun only.** Not a real personality test. Phone numbers and emails get redacted, but names stay visible.")
-
-with st.expander("📱 How to export"):
-    st.write("WhatsApp → Chat → ⋮ → More → Export → Without media → Upload the .txt or .zip")
+with st.expander("How to export your chat"):
+    st.write("""
+    1. Open WhatsApp chat
+    2. Tap ⋮ → More → Export chat
+    3. Choose "Without media"
+    4. Upload the .txt or .zip here
+    """)
 
 # ============================================================
-# VERDICT CARD RENDERING
+# VERDICT CARD
 # ============================================================
 def _svg(s):
     return "url(\"data:image/svg+xml;utf8," + s.replace("#", "%23").replace("\n", "") + "\")"
