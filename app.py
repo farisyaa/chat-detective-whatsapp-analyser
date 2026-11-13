@@ -12,7 +12,7 @@ import html as _html
 
 st.set_page_config(page_title="Chat Detective", page_icon="🕵️", layout="centered")
 
-# ============================================================
+# ===========================================================
 # UI - using native Streamlit (themed via .streamlit/config.toml)
 # ============================================================
 st.title("🕵️ Chat Detective")
