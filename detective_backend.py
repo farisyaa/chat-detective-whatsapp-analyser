@@ -448,8 +448,7 @@ async def investigate(raw):
     messages.sort(key=lambda m: m["ts"])
     if not messages:
         raise ValueError("No supported messages found")
-    if len(messages) > 20000 or len({m["sender"] for m in messages}) > 20:
-        raise ValueError("Demo limit: 20,000 messages and 20 participants")
+    # No demo limit - removed
     load_chat(messages)
     reset_ledger()
     agent = build_agents()
@@ -479,13 +478,13 @@ async def investigate(raw):
         reset_ledger()
 
 if __name__ == "__main__":
-    import asyncio, contextlib, io, sys
+    import asyncio, sys, traceback
     try:
         payload = json.loads(sys.stdin.read())
-        # Do not mix callback prints with the JSON result or expose them in UI logs.
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            result = asyncio.run(investigate(payload["text"]))
+        result = asyncio.run(investigate(payload["text"]))
         print(json.dumps({"ok":True, "result":result}, ensure_ascii=False))
-    except Exception:
-        print(json.dumps({"ok":False, "error":"Investigation failed. Check API key, model availability, quota, or try a smaller supported export."}))
+    except Exception as e:
+        # Return the ACTUAL error message for debugging
+        err_msg = f"{type(e).__name__}: {e}"
+        print(json.dumps({"ok":False, "error":err_msg}))
         sys.exit(1)
