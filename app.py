@@ -191,8 +191,6 @@ if investigate:
         clean, report = scrub_messages(parse_chat(raw))
         if not clean:
             raise ValueError("No supported messages found.")
-        if len(clean) > 20000 or len({m["sender"] for m in clean}) > 20:
-            raise ValueError("Demo limit: 20,000 messages and 20 participants.")
         st.info(f"Parsed {len(clean):,} messages. Redacted {sum(report.values())} PII matches.")
         with st.spinner("Reading receipts..."):
             st.session_state["result"] = run_backend(raw)
