@@ -15,26 +15,21 @@ import html as _html
 FONTS = ('<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@1'
          '&family=Bricolage+Grotesque:wght@400;500;600&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">')
 
-# All texture is inline SVG data URIs. No images, no external assets, works in Colab display(HTML) and Streamlit st.markdown.
 def _svg(s):
     return "url(\"data:image/svg+xml;utf8," + s.replace("#", "%23").replace("\n", "") + "\")"
 
-# paper grain (visible this time)
 GRAIN = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'>"
              "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/>"
              "<feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.14 0 0 0 0 0.08 0 0 0 0.16 0'/></filter>"
              "<rect width='100%' height='100%' filter='url(#n)'/></svg>")
-# ink wear mask for stamps: blotchy, so letters print unevenly
 INK = _svg("<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>"
            "<filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='2' seed='7'/>"
            "<feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 0.1'/></filter>"
            "<rect width='100%' height='100%' fill='white' filter='url(#m)'/></svg>")
-# a coffee ring, because every real case file has one
 RING = _svg("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>"
             "<circle cx='100' cy='100' r='78' fill='none' stroke='#7a4a1e' stroke-width='9' opacity='.16'/>"
             "<circle cx='100' cy='100' r='78' fill='none' stroke='#5a3312' stroke-width='2' opacity='.22' stroke-dasharray='40 11 6 23 90 14'/>"
             "<circle cx='100' cy='100' r='70' fill='none' stroke='#7a4a1e' stroke-width='1.5' opacity='.12'/></svg>")
-# three different scribble underlines so the names don't look stamped out by a machine
 SCRIBBLES = [
     "<path d='M1 5 Q 14 1 27 5 T 53 4 T 79 6 T 99 3' fill='none' stroke='#d92b2b' stroke-width='2.6' stroke-linecap='round'/>",
     "<path d='M2 4 C 20 8, 40 0, 60 5 S 90 2, 99 6 M4 7 C 30 4, 60 9, 96 5' fill='none' stroke='#d92b2b' stroke-width='1.9' stroke-linecap='round'/>",
@@ -196,12 +191,10 @@ def run_backend(text):
     return payload["result"]
 
 # ============================================================
-# PAGE STYLING
+# PAGE STYLING - inject via st.html (renders raw HTML without escaping)
 # ============================================================
-PAGE_CSS = FONTS + """
+st.html(FONTS + """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@1&family=Bricolage+Grotesque:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap');
-
 /* Hide Streamlit chrome */
 #MainMenu, footer, header {visibility: hidden;}
 [data-testid="stHeader"] {background: transparent !important;}
@@ -213,99 +206,12 @@ PAGE_CSS = FONTS + """
     font-family: 'Bricolage Grotesque', system-ui, sans-serif;
 }
 
-/* Custom hero headline */
-.hero-title {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 48px;
-    font-weight: 600;
-    color: #1b1713;
-    line-height: 1.1;
-    margin: 0 0 8px 0;
-}
-.hero-title .pill {
-    display: inline-block;
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-style: italic;
-    font-weight: 400;
-    font-size: 46px;
-    background: #f5c6d0;
-    border-radius: 999px;
-    padding: 2px 20px 6px;
-    margin-left: 8px;
-    transform: rotate(-2deg);
-    white-space: nowrap;
-}
-.hero-tagline {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 18px;
-    color: #5a534a;
-    margin: 0 0 28px 0;
-    line-height: 1.5;
-}
-
-/* Upload card */
-.upload-card {
-    background: #fff;
-    border: 1px solid #e0dbd4;
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.upload-header {
-    background: #e8a857;
-    color: #1b1713;
-    padding: 14px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.upload-header-title {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 600;
-    font-size: 17px;
-}
-.upload-header-step {
-    font-family: 'Courier Prime', monospace;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-    opacity: 0.85;
-}
-.upload-body {
-    padding: 20px;
-}
-.upload-hint {
-    font-family: 'Courier Prime', monospace;
-    font-size: 13px;
-    color: #7b7267;
-    margin-bottom: 16px;
-}
-.upload-dropzone {
-    background: #f5f9f3;
-    border: 2px dashed #c5d4be;
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: left;
-    position: relative;
-}
-.upload-dropzone-title {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 22px;
-    font-weight: 500;
-    color: #1b1713;
-    margin-bottom: 16px;
-}
-
 /* Override Streamlit file uploader */
-[data-testid="stFileUploader"] {
-    background: transparent !important;
-}
+[data-testid="stFileUploader"] { background: transparent !important; }
 [data-testid="stFileUploaderDropzone"] {
-    background: transparent !important;
-    border: none !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] {
-    display: none !important;
+    background: #f5f9f3 !important;
+    border: 2px dashed #c5d4be !important;
+    border-radius: 12px !important;
 }
 [data-testid="stFileUploader"] button {
     background: #c8e6b8 !important;
@@ -314,43 +220,35 @@ PAGE_CSS = FONTS + """
     border-radius: 8px !important;
     font-family: 'Bricolage Grotesque', sans-serif !important;
     font-weight: 500 !important;
-    padding: 8px 20px !important;
 }
 [data-testid="stFileUploader"] small {
     font-family: 'Courier Prime', monospace !important;
     color: #7b7267 !important;
 }
 
-/* Checkbox styling */
+/* Checkbox */
 [data-testid="stCheckbox"] label span {
     font-family: 'Bricolage Grotesque', sans-serif !important;
     font-size: 14px !important;
     color: #1b1713 !important;
 }
 
-/* Primary button - Investigate */
+/* Primary button */
 .stButton > button[kind="primary"],
-.stButton > button[data-testid="baseButton-primary"] {
+div[data-testid="stButton"] > button:first-child {
     background: #d4a59a !important;
     color: #1b1713 !important;
     border: none !important;
     border-radius: 8px !important;
     font-family: 'Bricolage Grotesque', sans-serif !important;
     font-weight: 500 !important;
-    font-size: 15px !important;
     padding: 12px 24px !important;
-    box-shadow: none !important;
-}
-.stButton > button[kind="primary"]:hover {
-    background: #c9948a !important;
 }
 .stButton > button[kind="primary"]:disabled {
-    background: #d4a59a !important;
     opacity: 0.5 !important;
 }
 
-/* Secondary button - Preview */
-.stButton > button[kind="secondary"],
+/* Secondary button */
 .stButton > button:not([kind="primary"]) {
     background: #fff !important;
     color: #1b1713 !important;
@@ -358,7 +256,6 @@ PAGE_CSS = FONTS + """
     border-radius: 8px !important;
     font-family: 'Bricolage Grotesque', sans-serif !important;
     font-weight: 500 !important;
-    font-size: 15px !important;
     padding: 12px 24px !important;
 }
 
@@ -371,18 +268,11 @@ PAGE_CSS = FONTS + """
 }
 [data-testid="stExpander"] summary {
     font-family: 'Bricolage Grotesque', sans-serif !important;
-    font-size: 15px !important;
     color: #1b1713 !important;
-    padding: 16px 20px !important;
-}
-[data-testid="stExpander"] svg {
-    color: #7b7267 !important;
 }
 
 /* Sidebar */
-[data-testid="stSidebar"] {
-    background: #f5f1eb !important;
-}
+[data-testid="stSidebar"] { background: #f5f1eb !important; }
 [data-testid="stSidebar"] [data-testid="stMetricValue"] {
     font-family: 'Archivo Black', sans-serif !important;
     color: #1b1713 !important;
@@ -390,80 +280,78 @@ PAGE_CSS = FONTS + """
 [data-testid="stSidebar"] [data-testid="stMetricLabel"] {
     font-family: 'Courier Prime', monospace !important;
     color: #7b7267 !important;
-    font-size: 12px !important;
-}
-
-/* Hide default labels */
-[data-testid="stWidgetLabel"] {
-    display: none !important;
 }
 
 /* Spinner */
-.stSpinner > div {
-    border-color: #e8a857 transparent transparent transparent !important;
-}
+.stSpinner > div { border-color: #e8a857 transparent transparent transparent !important; }
 </style>
-"""
+""")
 
 # ============================================================
-# UI LAYOUT
+# HERO (self-contained HTML block)
 # ============================================================
-st.markdown(PAGE_CSS, unsafe_allow_html=True)
+st.html("""
+<div style="margin-bottom: 28px;">
+  <h1 style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 48px; font-weight: 600; color: #1b1713; line-height: 1.1; margin: 0 0 8px 0;">
+    Your group chat.<br>
+    Under <span style="display: inline-block; font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; font-size: 46px; background: #f5c6d0; border-radius: 999px; padding: 2px 20px 6px; transform: rotate(-2deg);">investigation.</span>
+  </h1>
+  <p style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; color: #5a534a; margin: 0; line-height: 1.5;">
+    Someone's always "otw". Someone only replies "k".<br>
+    Let's see what the receipts say.
+  </p>
+</div>
+""")
 
-# Hero
-st.markdown("""
-<h1 class="hero-title">Your group chat.<br>Under <span class="pill">investigation.</span></h1>
-<p class="hero-tagline">Someone's always "otw". Someone only replies "k".<br>Let's see what the receipts say.</p>
-""", unsafe_allow_html=True)
+# ============================================================
+# UPLOAD CARD HEADER (self-contained)
+# ============================================================
+st.html("""
+<div style="background: #e8a857; color: #1b1713; padding: 14px 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: -16px;">
+  <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 17px;">Submit the evidence</span>
+  <span style="font-family: 'Courier Prime', monospace; font-size: 13px; letter-spacing: 0.05em; opacity: 0.85;">01 / UPLOAD</span>
+</div>
+""")
 
-# Upload card
-st.markdown("""
-<div class="upload-card">
-  <div class="upload-header">
-    <span class="upload-header-title">Submit the evidence</span>
-    <span class="upload-header-step">01 / UPLOAD</span>
-  </div>
-  <div class="upload-body">
-    <p class="upload-hint">WhatsApp export · without media · TXT or ZIP · up to 5 MB</p>
-    <div class="upload-dropzone">
-      <p class="upload-dropzone-title">Drop your chat export here</p>
-""", unsafe_allow_html=True)
+# File uploader hint
+st.caption("WhatsApp export · without media · TXT or ZIP · up to 5 MB")
 
-upload = st.file_uploader("Upload", type=["txt", "zip"], label_visibility="collapsed")
+# Native Streamlit file uploader (styled via CSS above)
+upload = st.file_uploader("Drop your chat export here", type=["txt", "zip"])
 
-st.markdown("</div></div></div>", unsafe_allow_html=True)
-
+# Consent checkbox
 consent = st.checkbox("I have permission to analyze this chat. I understand that scrubbed snippets and stats are sent to Gemini.")
 
+# Buttons
 col1, col2 = st.columns([1, 1])
 with col1:
     investigate_clicked = st.button("Investigate this chat ↗", disabled=not (upload and consent), type="primary")
 with col2:
     preview_clicked = st.button("Preview a sample case")
 
+# FAQ expanders
 with st.expander("Before you hand over the receipts"):
     st.markdown("""
-    **For entertainment only.** This is not a psychological assessment.
+**For entertainment only.** This is not a psychological assessment.
 
-    **Privacy:** Supported PII patterns (phone numbers, emails, URLs) are redacted before analysis. Names and sensitive context may remain in the scrubbed text sent to Gemini.
+**Privacy:** Supported PII patterns (phone numbers, emails, URLs) are redacted before analysis. Names and sensitive context may remain in the scrubbed text sent to Gemini.
 
-    **Demo limits:** 20,000 messages and 20 participants max.
-    """)
+**Demo limits:** 20,000 messages and 20 participants max.
+""")
 
 with st.expander("How do I export my chat?"):
     st.markdown("""
-    1. Open the WhatsApp chat
-    2. Tap the three dots (⋮) → **More** → **Export chat**
-    3. Choose **Without media**
-    4. Save the .txt or .zip file
-    5. Upload it here
-    """)
+1. Open the WhatsApp chat
+2. Tap the three dots (⋮) → **More** → **Export chat**
+3. Choose **Without media**
+4. Save the .txt or .zip file
+5. Upload it here
+""")
 
 # ============================================================
 # LOGIC
 # ============================================================
 if preview_clicked:
-    # Show a hardcoded sample verdict
     sample_verdict = {
         "group_name": "Sample Squad",
         "group_verdict": "A textbook case of chronic lateness, selective hearing, and 'I'll do it tomorrow' energy.",
