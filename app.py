@@ -23,11 +23,7 @@ st.info("**For fun only.** Phone numbers and emails get redacted. Names stay vis
 upload = st.file_uploader("Upload WhatsApp export (.txt or .zip)", type=["txt", "zip"])
 consent = st.checkbox("I have permission to analyze this chat")
 
-col1, col2 = st.columns(2)
-with col1:
-    investigate = st.button("🔍 Investigate", disabled=not (upload and consent), type="primary", use_container_width=True)
-with col2:
-    preview = st.button("👀 Preview sample", use_container_width=True)
+investigate = st.button("🔍 Investigate", disabled=not (upload and consent), type="primary")
 
 with st.expander("How to export your chat"):
     st.write("""
@@ -188,18 +184,6 @@ def run_backend(text):
 # ============================================================
 # LOGIC
 # ============================================================
-if preview:
-    sample_verdict = {
-        "group_name": "Sample Squad",
-        "group_verdict": "A textbook case of chronic lateness, selective hearing, and 'I'll do it tomorrow' energy.",
-        "group_subtitle": "847 messages · 1.2 min median reply · 14 months of chaos",
-        "people": [
-            {"name": "Alex", "emoji": "🦥", "label": "THE GHOST", "mbti": "INFP", "celebrity": "Timothée Chalamet", "roast": "Appears once a month to drop a single 'lol' then vanishes.", "receipt": "Last seen: 3 weeks ago. Messages sent: 12."},
-            {"name": "Sam", "emoji": "📱", "label": "THE SCHEDULER", "mbti": "ESTJ", "celebrity": "Monica Geller", "roast": "Will create a poll for literally anything, including what to have for lunch.", "receipt": "Polls created: 47. Polls ignored by group: 46."}
-        ]
-    }
-    st.session_state["result"] = {"verdict": sample_verdict, "summary": {"total": {"usd": 0, "calls": 0}}, "tools": [], "ledger": []}
-
 if investigate:
     st.session_state.pop("result", None)
     try:
