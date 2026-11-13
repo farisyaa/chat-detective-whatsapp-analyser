@@ -478,10 +478,13 @@ async def investigate(raw):
         reset_ledger()
 
 if __name__ == "__main__":
-    import asyncio, sys, traceback
+    import asyncio, sys, traceback, io, contextlib
     try:
         payload = json.loads(sys.stdin.read())
-        result = asyncio.run(investigate(payload["text"]))
+        # Capture prints from log_usage so they don't pollute JSON output
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured):
+            result = asyncio.run(investigate(payload["text"]))
         print(json.dumps({"ok":True, "result":result}, ensure_ascii=False))
     except Exception as e:
         # Return the ACTUAL error message for debugging
