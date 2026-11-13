@@ -176,9 +176,12 @@ def run_backend(text):
     try:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError:
-        raise ValueError("The backend stopped unexpectedly. Try a smaller export.") from None
+        # Show actual error output for debugging
+        err_msg = proc.stderr[:500] if proc.stderr else "No stderr"
+        out_msg = proc.stdout[:200] if proc.stdout else "No stdout"
+        raise ValueError(f"Backend crashed. stderr: {err_msg} | stdout: {out_msg}") from None
     if not payload.get("ok"):
-        raise ValueError(payload.get("error", "Investigation failed."))
+        raise ValueError(payload.get("error", "Investigation failed. Check API key, model availability, quota, or try a smaller supported export."))
     return payload["result"]
 
 # ============================================================
